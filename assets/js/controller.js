@@ -134,44 +134,88 @@ const BlogController = {
 const PostController = {
   init() {
     const postId = new URLSearchParams(window.location.search).get("id");
-    if (!postId) {
-      document.querySelector("main").innerHTML = `<p class="text-danger">ID поста не вказано</p>`;
-      return;
-    }
-
     const post = PostModel.getPostById(postId);
     if (!post) {
-      document.querySelector("main").innerHTML = `<p class="text-danger">Пост не знайдено</p>`;
+      PostView.renderPostNotFound();
       return;
     }
 
-    PostView.renderPost(post);
-    PostView.renderComments(postId);
-    this.setupCommentForm(postId);
+    const currentUser = Auth.getCurrentUser();
+    const isAuthor = currentUser && post.author === currentUser.name;
+
+    PostView.renderPost(post, isAuthor);
+    PostView.bindPostActions(postId, isAuthor);
+
+    const comments = PostModel.getCommentsForPost(postId);
+    PostView.renderComments(comments, currentUser, postId);
+    this.bindCommentForm(postId);
   },
 
-  setupCommentForm(postId) {
-      const form = document.getElementById("comment-form");
-    
-      form.addEventListener("submit", function (e) {
-        e.preventDefault();
-        const commentText = document.getElementById("comment").value.trim();
-    
-        if (!commentText) return;
-    
-        const currentUser = Auth.getCurrentUser();
-        const comment = {
-          author: currentUser ? currentUser.name : "Анонім",
-          text: commentText,
-          date: new Date().toLocaleDateString("uk-UA")
-        };
-    
-        PostModel.saveComment(postId, comment);
-        form.reset();
-        PostView.renderComments(postId);
-      });
-    }
+  bindCommentForm(postId) {
+    const form = document.getElementById("comment-form");
+    form.addEventListener("submit", e => {
+      e.preventDefault();
+      const text = document.getElementById("comment").value.trim();
+      if (!text) return;
+
+      const currentUser = Auth.getCurrentUser();
+      const comment = {
+        author: currentUser ? currentUser.name : "Анонім",
+        text,
+        date: new Date().toLocaleDateString("uk-UA")
+      };
+      PostModel.saveComment(postId, comment);
+      form.reset();
+      PostView.renderComments(PostModel.getCommentsForPost(postId), currentUser, postId);
+    });
+  },
+
+  showEditPostForm(postId) {
+    const post = PostModel.getPostById(postId);
+    if (!post) return;
+
+    PostView.renderEditPostForm(post);
+    document.getElementById("edit-post-form").addEventListener("submit", e => {
+      e.preventDefault();
+      const title = document.getElementById("edit-title").value.trim();
+      const content = document.getElementById("edit-content").value.trim();
+      if (!title || !content) return alert("Заповніть всі поля");
+
+      PostModel.updatePost(postId, { title, content });
+      location.reload();
+    });
+  },
+
+  editComment(postId, index) {
+    const comments = PostModel.getCommentsForPost(postId);
+    const comment = comments[index];
+    PostView.renderEditCommentForm(comment, index);
+    PostView.bindEditCommentActions(postId, index);
+  },
+
+  saveEditedComment(postId, index, newText) {
+    const comments = PostModel.getCommentsForPost(postId);
+    comments[index].text = newText;
+    PostModel.updateComment(postId, index, comments[index]);
+    PostView.renderComments(comments, Auth.getCurrentUser(), postId);
+  },
+
+  deletePost(postId) {
+    Modal.showConfirm("Ви впевнені, що хочете видалити пост?", () => {
+      PostModel.deletePost(postId);
+      window.location.href = "blog.html";
+    });
+  },
+  
+  deleteComment(postId, index) {
+    Modal.showConfirm("Видалити коментар?", () => {
+      PostModel.deleteComment(postId, index);
+      const comments = PostModel.getCommentsForPost(postId);
+      PostView.renderComments(comments, Auth.getCurrentUser(), postId);
+    });
+  }
 };
+
 
 const NavigationController = {
   init: function () {

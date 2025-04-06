@@ -104,43 +104,115 @@ const BlogView = {
 };
 
 const PostView = {
-  renderPost(post) {
-    const container = document.querySelector("main");
-    container.innerHTML = `
-      <article class="border p-4 mb-4">
-        <h2>${post.title}</h2>
-        <p class="text-muted">Автор: ${post.author} | ${post.date}</p>
-        <p>${post.content}</p>
-      </article>
+  renderPost(post, isAuthor) {
+    const container = document.querySelector("article#post");
 
-      <section>
-        <h3>Коментарі</h3>
-        <form id="comment-form">
-            <div class="mb-3">
-                <label for="comment" class="form-label">Залишити коментар</label>
-                <textarea id="comment" class="form-control" rows="3" required></textarea>
-            </div>
-            <button type="submit" class="btn btn-primary">Надіслати</button>
-        </form>
-        <div class="mt-4" id="comments-list"></div>
-      </section>
+    container.innerHTML = `
+      <h2>${post.title}</h2>
+      <p class="text-muted">Автор: ${post.author} | ${post.date}</p>
+      <p>${post.content}</p>
+      ${isAuthor ? `
+        <button class="btn btn-warning btn-sm me-2" id="edit-post">Редагувати</button>
+        <button class="btn btn-danger btn-sm" id="delete-post">Видалити</button>
+      ` : ""}
+    `;
+    
+    document.getElementById("comments-section").style.display = "block";
+  },
+
+  bindPostActions(postId, isAuthor) {
+    if (!isAuthor) return;
+
+    document.getElementById("edit-post").addEventListener("click", () => {
+      PostController.showEditPostForm(postId);
+    });
+
+    document.getElementById("delete-post").addEventListener("click", () => {
+      PostController.deletePost(postId);
+    });
+  },
+
+  renderEditPostForm(post) {
+    const container = document.querySelector("article#post");
+    container.innerHTML = `
+      <h2>Редагувати пост</h2>
+      <form id="edit-post-form">
+        <div class="mb-3">
+          <label class="form-label">Заголовок</label>
+          <input type="text" class="form-control" id="edit-title" value="${post.title}" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Контент</label>
+          <textarea class="form-control" id="edit-content" rows="5" required>${post.content}</textarea>
+        </div>
+        <button type="submit" class="btn btn-success">Зберегти</button>
+      </form>
     `;
   },
 
-  renderComments(postId) {
-    const commentsContainer = document.getElementById("comments-list");
-    const postComments = PostModel.getCommentsForPost(postId);
+  renderComments(comments, currentUser, postId) {
+    const container = document.getElementById("comments-list");
+    container.innerHTML = "";
 
-    if (postComments.length === 0) {
-      commentsContainer.innerHTML = `<p>Коментарів поки немає.</p>`;
+    if (comments.length === 0) {
+      container.innerHTML = `<p>Коментарів поки немає.</p>`;
       return;
     }
 
-    commentsContainer.innerHTML = postComments.map(comment => `
-      <div class="comment mb-3">
+    comments.forEach((comment, index) => {
+      const div = document.createElement("div");
+      div.className = "comment mb-3";
+      div.innerHTML = `
         <p><strong>${comment.author}:</strong> ${comment.text}</p>
         <small class="text-muted">${comment.date}</small>
-      </div>
-    `).join("");
+        ${(currentUser && currentUser.name === comment.author) ? `
+          <div class="mt-2">
+            <button class="btn btn-sm btn-warning me-2" data-edit="${index}">Редагувати</button>
+            <button class="btn btn-sm btn-danger" data-delete="${index}">Видалити</button>
+          </div>` : ""}
+      `;
+      container.appendChild(div);
+    });
+
+    container.querySelectorAll("[data-edit]").forEach(btn => {
+      btn.addEventListener("click", e => {
+        PostController.editComment(postId, e.target.dataset.edit);
+      });
+    });
+
+    container.querySelectorAll("[data-delete]").forEach(btn => {
+      btn.addEventListener("click", e => {
+        PostController.deleteComment(postId, e.target.dataset.delete);
+      });
+    });
+  },
+
+  renderEditCommentForm(comment, index) {
+    const container = document.getElementById("comments-list");
+    const commentDiv = container.children[index];
+
+    commentDiv.innerHTML = `
+      <textarea class="form-control mb-2" id="edit-comment-text" rows="2">${comment.text}</textarea>
+      <button class="btn btn-sm btn-success me-2" id="save-comment">Зберегти</button>
+      <button class="btn btn-sm btn-secondary" id="cancel-edit">Скасувати</button>
+    `;
+  },
+
+  bindEditCommentActions(postId, index) {
+    document.getElementById("save-comment").addEventListener("click", () => {
+      const newText = document.getElementById("edit-comment-text").value.trim();
+      if (!newText) return;
+      PostController.saveEditedComment(postId, index, newText);
+    });
+
+    document.getElementById("cancel-edit").addEventListener("click", () => {
+      PostView.renderComments(PostModel.getCommentsForPost(postId), Auth.getCurrentUser(), postId);
+    });
+  },
+  
+  renderPostNotFound() {
+    const container = document.querySelector("article#post");
+    container.innerHTML = `<p class="text-danger">Пост не знайдено</p>`;
+    document.getElementById("comments-section").style.display = "none";
   }
 };
