@@ -42,25 +42,13 @@
           <th>Значення</th>
         </tr>
       </thead>
-      <tbody>
-        <tr>
-          <td>Ім’я</td>
-          <td>Іван</td>
-        </tr>
-        <tr>
-          <td>Email</td>
-          <td>ivan@example.com</td>
-        </tr>
-        <tr>
-          <td>Стать</td>
-          <td>Чоловіча</td>
-        </tr>
-        <tr>
-          <td>Дата народження</td>
-          <td>01.01.1990</td>
-        </tr>
+      <tbody id="profile-body">
+        <!-- Тут будуть відображатися дані користувача -->
       </tbody>
     </table>
+    
+    <!-- Кнопка для виходу -->
+    <button id="logout-btn" class="btn btn-danger">Вихід</button>
   </main>
 
   <footer class="bg-dark text-white text-center p-3">
@@ -69,6 +57,10 @@
     </div>
   </footer>
   
+  <script src="assets/js/model.js"></script>
+  <script src="assets/js/view.js"></script>
+  <script src="assets/js/controller.js"></script>
+  <script src="assets/js/main.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
