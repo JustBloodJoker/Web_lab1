@@ -25,6 +25,10 @@ const UserModel = {
 };
 
 const Auth = {
+  setCurrentUser: function(user) {
+    localStorage.setItem("currentUser", JSON.stringify(user));
+  },
+
   getCurrentUser: function () {
     const userStr = localStorage.getItem("currentUser");
     return userStr ? JSON.parse(userStr) : null;

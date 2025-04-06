@@ -58,8 +58,8 @@ const LoginController = {
 
     const user = UserModel.loginUser(email, password);
     if (user) {
-      localStorage.setItem("currentUser", JSON.stringify(user));
-
+      Auth.setCurrentUser(user)
+      
       LoginView.showAlert("Успішний вхід! Перенаправлення...", "success");
       setTimeout(() => {
         window.location.href = "profile.html";
